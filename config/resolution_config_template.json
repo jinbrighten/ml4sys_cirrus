@@ -1,0 +1,8 @@
+{
+    "width": 4500,
+    "height": 100,
+    "maxAngleWidth": 360.0,
+    "maxAngleHeight": 28.0,
+    "dataset_directory": "/data/3d/kitti_pcd/orig/",
+    "save_directory": "/data/3d/kitti_pcd/"
+}

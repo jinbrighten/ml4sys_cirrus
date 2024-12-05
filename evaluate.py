@@ -162,65 +162,57 @@ def get_filtered_bbox(boundary, labels):
     return labels
 
 def main(args: Namespace) -> None:
-
-    print("=====================================")
-    print(f"Start evaluation: {args.model}")
-    print("=====================================")
-
-
-    numPoints = {knob_value: 0 for knob_value in knob_list}
-    numPoints['raw'] = 0
-    confidence_matrix = {}
-    confidence_matrix_0 = {}
-    confidence_matrix_20 = {}
-    confidence_matrix_40 = {}
-    mIous = {}
     
-    space_saving = {}
-    latency_avg = {}
-    f1_scores = {}
-    f1_scores_0 = {}
-    f1_scores_20 = {}
-    f1_scores_40 = {}
-    
-    output_dir = os.path.join(args.output_root, args.model)
-            
+    raw_root = "/data/3d/kitti/training/"
+    sampled_root = "/data/3d/kitti_sampled/training/pre_infer/multi_resolution/"
+    output_root = f"/data/3d/kitti_sampled/training/post_infer/{args.model}/multi_resolution/"
+    result_root = f"/data/3d/kitti_sampled/training/results/{args.model}/multi_resolution/"
 
-    for pointsize in pointsizes:
+    sampled_path = os.path.join(sampled_root, args.input_args)
+    output_path = os.path.join(output_root, args.input_args)
+    result_path = os.path.join(result_root, args.input_args)
+
+    if os.path.isfile(os.path.join(sampled_path, "000000.bin")):
+        print("=====================================")
+        print(f"Start evaluation: {args.model}")
+        print("=====================================")
 
         F1_scores = []
         validate_indices = []
 
-        output_path = os.path.join(output_dir, "pointsize_%.2f"%pointsize)
-        output_file = os.path.join(output_path, "inference_results.pkl")
-
-        with open(output_file, 'rb') as f:
-            inference_results = pickle.load(f)
-        
         GT = 0
         FN = 0
         FP = 0
         TP = 0
+        for sample_idx in range(100):
+            if not os.path.isfile(os.path.join(sampled_path, "%06d.bin"%sample_idx)) or not os.path.isfile(os.path.join(output_path, "%06d.pkl"%sample_idx)):
+                continue
+            output_file = os.path.join(output_path, "%06d.pkl"%sample_idx)    
 
-        for sample_idx in tqdm(sample_indices, desc=f"Pointsize: {pointsize}"):
-            ## Load GT
-            GT_file = os.path.join(args.input_root, "label_2/%06d.txt"%sample_idx)
+            GT_file = os.path.join(raw_root, "label_2/%06d.txt"%sample_idx)
+            GT_pc = os.path.join(raw_root, "velodyne/%06d.bin"%sample_idx)
+            sample_pc = os.path.join(sampled_path, "%06d.bin"%sample_idx)
+
+            GT_pc_size = np.fromfile(GT_pc, dtype=np.float32).reshape(-1, 4).shape[0]
+            sample_pc_size = np.fromfile(sample_pc, dtype=np.float32).reshape(-1, 4).shape[0]
+            space_saving = 1 - sample_pc_size / GT_pc_size
 
             if not os.path.exists(GT_file):
                 continue
-            
+
             validate_indices.append(int(sample_idx))
 
-            _, _, _, _, _, labels_lidar = process_sample(args.input_root, sample_idx)
-            
+            _, _, _, _, _, labels_lidar = process_sample(raw_root, sample_idx)
+
             GT_mask = labels_lidar[:, 0] == 1
             labels_car = labels_lidar[GT_mask]
 
             if labels_car.size != 0:
                 GT += np.count_nonzero(GT_mask)
 
+                with open(output_file, 'rb') as f:
+                    inference_result = pickle.load(f)
                 try:
-                    inference_result = inference_results[sample_idx]
                     boxes = inference_result["boxes"]
                     scores = inference_result["scores"]
                     labels = inference_result["labels"]
@@ -275,24 +267,21 @@ def main(args: Namespace) -> None:
                     f1_score = 2 * (precision * recall) / (precision + recall)
                 except:
                     f1_score = 0
-
                 F1_scores.append(float(f1_score))
-        
+
         average_F1 = np.mean(F1_scores)
-
-        results = dict()
-        results["F1_scores"] = list(F1_scores)
-        results["average_F1"] = float(average_F1)
-        results["validate_indices"] = list(validate_indices)
-
-        with open(os.path.join(output_path, "evaluation.json"), 'w') as fp:
-            json.dump(results, fp, indent=4)
+        average_space_saving = np.mean(space_saving)
+        
+        if not os.path.exists(result_path):
+            os.makedirs(result_path)
+        
+        with open(os.path.join(result_path, "evaluation.json"), 'w') as fp:
+            json.dump({"F1": average_F1, "Space saving": average_space_saving}, fp)
 
 def get_parser() -> ArgumentParser:
     parser = ArgumentParser(formatter_class=RawTextHelpFormatter)
-    parser.add_argument("--model", type=str, default="pv_rcnn")
-    parser.add_argument("-i", "--input_root", type=str, default="/data/3d/kitti/training")
-    parser.add_argument("-o", "--output_root", type=str, default="/data/3d/accuracy/kitti")
+    parser.add_argument("--model", type=str, default="3dssd")
+    parser.add_argument("-i", "--input_args", type=str, default="0/50/100/200/300/400/500")
     parser.set_defaults(func=main)
     return parser
 
