@@ -7,18 +7,34 @@
 static int width_sample = 100;
 static int diff_threshold = 5;
 static string frame_num = "000000";
-static bool verbose = false;
-static bool frame_mode = false;
+static array<int, 6> width_sample_list = {100, 200, 300, 400, 500, 1000};
+static array<int, 6> dif_thr_list = {10, 5, 0, 0, 0, 0};
+
 static string input_path = "/data/3d/kitti/training/velodyne/";
 static string output_path = "/data/3d/kitti_sampled/training/pre_infer/comb_knob/";
 
+
 static void print_help(string program_name) {
     cout << "Options:" << endl;
-    cout << "   -v: verbose print." << endl;
     cout << "   -w: size of the width for each distance (horizontal number of bins)." << endl;
     cout << "   -d: difference threshold for each distance." << endl;
     cout << "   -h: print this page." << endl;
 }
+
+static std::array<int, 6> parse_int_list(const char* optarg) {
+  std::string token;
+  std::stringstream ss(optarg);
+  std::array<int, 6> values;
+
+  for (int i = 0; i < 6; i++) {
+    if (std::getline(ss, token, ',')) {
+      values[i] = std::stoi(token);
+    }
+  }
+
+  return values;
+}
+
 
 static void parse_opt(int argc, char **argv) {
     int c;
@@ -35,22 +51,13 @@ static void parse_opt(int argc, char **argv) {
                 exit(0);
         }
     }
-    if (verbose) {
-        cout << "Combination knob; Sampling points selected by its range value." << endl;
-    }
 }
 
 int main (int argc, char** argv) {
     parse_opt(argc, argv);
     string save_path;
-    save_path = output_path + to_string(width_sample)+"/"+to_string(diff_threshold)+"/"+to_string(int(range_threshold))+"/";
+    save_path = output_path + to_string(width_sample)+"/"+to_string(diff_threshold)+"/";
     mkpath(save_path);
-    if (verbose) {
-        cout << "width_sample: " << width_sample << endl;
-        cout << "diff_threshold: " << diff_threshold << endl;
-        cout << "input_path: " << input_path << endl;
-        cout << "save_path: " << save_path << endl;
-    }
 
     int width = 4500;
     int height = 100;
@@ -79,11 +86,6 @@ int main (int argc, char** argv) {
         if (file_name.size()<=4 || !endsWith(file_name, ".bin")) 
             continue;
         
-        if (frame_mode) {
-            if (!startsWith(file_name, frame_num)) 
-                continue;
-        }
-
         string file_path = input_path + file_name;
         ifstream file(file_path, ios::binary | ios::ate);
         int near_points = 0;

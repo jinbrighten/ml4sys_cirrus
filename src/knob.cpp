@@ -150,8 +150,8 @@ void ROIextraction(vector<array<float, IN_COLS>>
 
 void RI_interpolation(float column, float row, int i, float range, float range_threshold, int width, int height, 
                     float **edge_rangeMat, int **edge_indexMat, int rowIdn, int edge_colIdn){
-    int floor_x = pcl_lrint (std::floor (column)), floor_y = pcl_lrint (std::floor (row)),
-    ceil_x  = pcl_lrint (std::ceil (column)),  ceil_y  = pcl_lrint (std::ceil (row));
+    int floor_x = lrint(static_cast<double>(std::floor (column))), floor_y = lrint(static_cast<double>(std::floor (row))),
+    ceil_x  = lrint(static_cast<double>(std::ceil (column))),  ceil_y  = lrint(static_cast<double>(std::ceil (row)));
 
     // interpolate by 2x4 size
     int neighbor_x[8], neighbor_y[8];
@@ -236,7 +236,7 @@ void sample_by_reso_comb(vector<array<float, IN_COLS>> &inputPoints, vector<arra
 
         verticalAngle = asin(point[2]/range) * 180 / M_PI;
         row = (verticalAngle + ang_bottom) / angular_resolution_y;
-        rowIdn = pcl_lrint(row);
+        rowIdn = lrint(static_cast<double>(row));
         if (rowIdn >= height){
             if (rowIdn == height)
                 rowIdn = height - 1;
@@ -249,8 +249,8 @@ void sample_by_reso_comb(vector<array<float, IN_COLS>> &inputPoints, vector<arra
         horizontalAngle = atan2(point[0], point[1]) * 180 / M_PI;
         column = -(horizontalAngle-90.0)/360 * width + width/2;
         reso_column = -(horizontalAngle-90.0)/360 * width_sample + width_sample/2;
-        edge_colIdn = pcl_lrint(column);
-        reso_colIdn = pcl_lrint(reso_column);
+        edge_colIdn = lrint(static_cast<double>(column));
+        reso_colIdn = lrint(static_cast<double>(reso_column));
         if (edge_colIdn >= width){
             edge_colIdn -= width;
             column -= width;
@@ -350,7 +350,7 @@ void sampling_multi_resolution(vector<array<float, IN_COLS>> &inPoints, vector<a
 
         verticalAngle = asin(point[2]/range) * 180 / M_PI;
         row = (verticalAngle + ang_bottom) / angular_resolution_y;
-        rowIdn = pcl_lrint(row);
+        rowIdn = lrint(static_cast<double>(row));
         if (rowIdn >= height){
             if (rowIdn == height)
                 rowIdn = height - 1;
@@ -361,7 +361,7 @@ void sampling_multi_resolution(vector<array<float, IN_COLS>> &inPoints, vector<a
         
         horizontalAngle = atan2(point[0], point[1]) * 180 / M_PI;
         reso_column = -(horizontalAngle-90.0)/360 * width_sample_list[range_interval] + width_sample_list[range_interval]/2;
-        reso_colIdn = pcl_lrint(reso_column);
+        reso_colIdn = lrint(static_cast<double>(reso_column));
         if (reso_colIdn >= width_sample_list[range_interval])
             reso_colIdn -= width_sample_list[range_interval];
 
