@@ -10,7 +10,6 @@ add_definitions(${PCL_DEFINITIONS})
 find_package( OpenCV REQUIRED )
 include_directories(${OpenCV_INCLUDE_DIRS})
 link_directories(${OpenCV_LIB_DIR})
-# add_compile_definitions(EIGEN_DONT_VECTORIZE)
 
 find_package(jsoncpp REQUIRED)
 
@@ -26,22 +25,12 @@ target_link_libraries(knob utility)
 
 
 
-add_executable(knob_combination src/knob_combination.cpp)
+add_executable(combination_sampling src/combination_sampling.cpp)
 target_link_libraries (
-        knob_combination
+        combination_sampling
         knob
         pthread
         ${VTK_LIBRARIES}
         ${PCL_LIBRARIES}
         jsoncpp_lib
 )
-add_executable(knob_multi_resolution src/knob_multi_resolution.cpp)
-target_link_libraries (
-        knob_multi_resolution
-        knob
-        pthread
-        ${VTK_LIBRARIES}
-        ${PCL_LIBRARIES}
-        jsoncpp_lib
-)
-
