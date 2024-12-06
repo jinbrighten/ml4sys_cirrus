@@ -72,11 +72,11 @@ def inference_directory(model_name: str, input_dir: str, output_dir: str, device
     
     device = f"cuda:{device}"
     model = init_model(config_file, checkpoint_file, device)
-    if os.path.isdir(input_path):
-        for binfile in tqdm(os.listdir(input_path), desc=output_path):
+    if os.path.isdir(input_dir):
+        for binfile in tqdm(os.listdir(input_dir), desc=output_dir):
             try:
                 if not binfile.endswith('.bin'): continue
-                points = np.fromfile(os.path.join(input_path, binfile), dtype=np.float32).reshape(-1, 4)
+                points = np.fromfile(os.path.join(input_dir, binfile), dtype=np.float32).reshape(-1, 4)
                 result = inference(points, model)
 
                 boxes = result.pred_instances_3d.bboxes_3d
@@ -92,7 +92,7 @@ def inference_directory(model_name: str, input_dir: str, output_dir: str, device
                 print(f"Error: {e}")
                 continue
 
-            with open(os.path.join(output_path, binfile[:-3]+'pkl'), 'wb') as fp:
+            with open(os.path.join(output_dir, binfile[:-3]+'pkl'), 'wb') as fp:
                 pickle.dump(inference_result, fp)
 
 
