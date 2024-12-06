@@ -164,15 +164,26 @@ def get_filtered_bbox(boundary, labels):
 def main(args: Namespace) -> None:
     
     raw_root = "/data/3d/kitti/training/"
-    sampled_root = "/data/3d/kitti_sampled/training/pre_infer/multi_resolution/"
-    output_root = f"/data/3d/kitti_sampled/training/post_infer/{args.model}/multi_resolution/"
-    result_root = f"/data/3d/kitti_sampled/training/results/{args.model}/multi_resolution/"
+    input_root = "/data/3d/kitti_sampled/training/pre_infer/ml4sys/"
+    infer_root = f"/data/3d/kitti_sampled/training/post_infer/ml4sys/"
+    result_root = f"/data/3d/kitti_sampled/training/results/ml4sys/"
+    
+    input_path = input_root
+    infer_path = os.path.join(infer_root, args.model)
+    result_path = os.path.join(result_root, args.model)
+    
+    if args.args:
+        suffix = "_".join(map(str, args.args)) + "_"
+        input_path = os.path.join(input_path, suffix)
+        infer_path = os.path.join(infer_path, suffix)
+        result_path = os.path.join(result_path, suffix)
+    
+    input_path = os.path.join(input_path, "")
+    infer_path = os.path.join(infer_path, "")
+    result_path = os.path.join(result_path, "")
 
-    sampled_path = os.path.join(sampled_root, args.input_args)
-    output_path = os.path.join(output_root, args.input_args)
-    result_path = os.path.join(result_root, args.input_args)
 
-    if os.path.isfile(os.path.join(sampled_path, "000000.bin")):
+    if os.path.isfile(os.path.join(input_path, "000000.bin")):
         print("=====================================")
         print(f"Start evaluation: {args.model}")
         print("=====================================")
@@ -185,13 +196,13 @@ def main(args: Namespace) -> None:
         FP = 0
         TP = 0
         for sample_idx in range(100):
-            if not os.path.isfile(os.path.join(sampled_path, "%06d.bin"%sample_idx)) or not os.path.isfile(os.path.join(output_path, "%06d.pkl"%sample_idx)):
+            if not os.path.isfile(os.path.join(input_path, "%06d.bin"%sample_idx)) or not os.path.isfile(os.path.join(infer_path, "%06d.pkl"%sample_idx)):
                 continue
-            output_file = os.path.join(output_path, "%06d.pkl"%sample_idx)    
+            output_file = os.path.join(infer_path, "%06d.pkl"%sample_idx)    
 
             GT_file = os.path.join(raw_root, "label_2/%06d.txt"%sample_idx)
             GT_pc = os.path.join(raw_root, "velodyne/%06d.bin"%sample_idx)
-            sample_pc = os.path.join(sampled_path, "%06d.bin"%sample_idx)
+            sample_pc = os.path.join(input_path, "%06d.bin"%sample_idx)
 
             GT_pc_size = np.fromfile(GT_pc, dtype=np.float32).reshape(-1, 4).shape[0]
             sample_pc_size = np.fromfile(sample_pc, dtype=np.float32).reshape(-1, 4).shape[0]
@@ -271,6 +282,8 @@ def main(args: Namespace) -> None:
 
         average_F1 = np.mean(F1_scores)
         average_space_saving = np.mean(space_saving)
+        print(f"Average F1: {average_F1}")
+        print(f"Average Space saving: {average_space_saving}")
         
         if not os.path.exists(result_path):
             os.makedirs(result_path)
@@ -281,7 +294,7 @@ def main(args: Namespace) -> None:
 def get_parser() -> ArgumentParser:
     parser = ArgumentParser(formatter_class=RawTextHelpFormatter)
     parser.add_argument("--model", type=str, default="3dssd")
-    parser.add_argument("-i", "--input_args", type=str, default="0/50/100/200/300/400/500")
+    parser.add_argument("-a", "--args", nargs="*", type=int)
     parser.set_defaults(func=main)
     return parser
 
