@@ -9,11 +9,16 @@ import numpy as np
 from tqdm import tqdm
 
 MODEL_CONFIG = {
-    "3dssd": "../lib/mmdetection3d/configs/3dssd/3dssd_4xb4_kitti-3d-car.py", # 16384
-    "pointpillars": "../lib/mmdetection3d/configs/pointpillars/pointpillars_hv_secfpn_8xb6-160e_kitti-3d-3class.py",
-    "pv_rcnn": "../lib/mmdetection3d/configs/pv_rcnn/pv_rcnn_8xb2-80e_kitti-3d-3class.py",
-    "parta2": "../lib/mmdetection3d/configs/parta2/parta2_hv_secfpn_8xb2-cyclic-80e_kitti-3d-car.py",
-    "point_rcnn": "../lib/mmdetection3d/configs/point_rcnn/point-rcnn_8xb2_kitti-3d-3class.py"
+    # "3dssd": "../lib/mmdetection3d/configs/3dssd/3dssd_4xb4_kitti-3d-car.py", # 16384
+    # "pointpillars": "../lib/mmdetection3d/configs/pointpillars/pointpillars_hv_secfpn_8xb6-160e_kitti-3d-3class.py",
+    # "pv_rcnn": "../lib/mmdetection3d/configs/pv_rcnn/pv_rcnn_8xb2-80e_kitti-3d-3class.py",
+    # "parta2": "../lib/mmdetection3d/configs/parta2/parta2_hv_secfpn_8xb2-cyclic-80e_kitti-3d-car.py",
+    # "point_rcnn": "../lib/mmdetection3d/configs/point_rcnn/point-rcnn_8xb2_kitti-3d-3class.py"
+    "3dssd": "/workspaces/ml4sys_cirrus/mmdetection3d/configs/3dssd/3dssd_4xb4_kitti-3d-car.py", # 16384
+    "pointpillars": "/workspaces/ml4sys_cirrus/mmdetection3d/configs/pointpillars/pointpillars_hv_secfpn_8xb6-160e_kitti-3d-3class.py",
+    "pv_rcnn": "/workspaces/ml4sys_cirrus/mmdetection3d/configs/pv_rcnn/pv_rcnn_8xb2-80e_kitti-3d-3class.py",
+    "parta2": "/workspaces/ml4sys_cirrus/mmdetection3d/configs/parta2/parta2_hv_secfpn_8xb2-cyclic-80e_kitti-3d-car.py",
+    "point_rcnn": "/workspaces/ml4sys_cirrus/mmdetection3d/configs/point_rcnn/point-rcnn_8xb2_kitti-3d-3class.py"
 }
 
 MODEL_CHECKPOINT = {
@@ -35,16 +40,18 @@ def main(args: Namespace) -> None:
     print("=====================================")
     print(f"Start inference: {args.model}")
     print("=====================================")
+    inference_directory(args.model, args.input_root, args.output_root, args.device)
     
 
-    config_file = MODEL_CONFIG[args.model]
-    checkpoint_file = os.path.join("/data/3d/mmdet3d_checkpoints", MODEL_CHECKPOINT[args.model])
+def inference_directory(model_name: str, input_dir: str, output_dir: str, device) -> None:
+    config_file = MODEL_CONFIG[model_name]
+    checkpoint_file = os.path.join("/data/3d/mmdet3d_checkpoints", MODEL_CHECKPOINT[model_name])
 
-    input_dir = args.input_root
-    output_dir = args.output_root
+    # input_dir = args.input_root
+    # output_dir = args.output_root
     os.makedirs(output_dir, exist_ok=True)
     
-    device = f"cuda:{args.device}"
+    device = f"cuda:{device}"
     model = init_model(config_file, checkpoint_file, device)
     if os.path.isdir(input_dir):
         for binfile in tqdm(os.listdir(input_dir), desc=output_dir):

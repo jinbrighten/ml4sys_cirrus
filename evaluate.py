@@ -161,122 +161,135 @@ def get_filtered_bbox(boundary, labels):
     labels = labels[mask_label]
     return labels
 
-def main(args: Namespace) -> None:
-    
+
+def evaluate(model: str, idx: str) -> None:
     raw_root = "/data/3d/kitti/training/"
     sampled_root = "/data/3d/kitti_sampled/training/pre_infer/multi_resolution/"
-    output_root = f"/data/3d/kitti_sampled/training/post_infer/{args.model}/multi_resolution/"
-    result_root = f"/data/3d/kitti_sampled/training/results/{args.model}/multi_resolution/"
+    output_root = f"/data/3d/kitti_sampled/training/post_infer/{model}/multi_resolution/"
+    result_root = f"/data/3d/kitti_sampled/training/results/{model}/multi_resolution/"
 
-    sampled_path = os.path.join(sampled_root, args.input_args)
-    output_path = os.path.join(output_root, args.input_args)
-    result_path = os.path.join(result_root, args.input_args)
+    # sampled_path = os.path.join(sampled_root, input_args)
+    # output_path = os.path.join(output_root, input_args)
+    # result_path = os.path.join(result_root, input_args)
+    sampled_path = f"/data/3d/mlfs/pre_infer/{idx}"
+    output_path = f"/data/3d/mlfs/post_infer/{idx}"
 
-    if os.path.isfile(os.path.join(sampled_path, "000000.bin")):
-        print("=====================================")
-        print(f"Start evaluation: {args.model}")
-        print("=====================================")
+    print("=====================================")
+    print(f"Start evaluation: {model}")
+    print("=====================================")
 
-        F1_scores = []
-        validate_indices = []
+    F1_scores = []
+    validate_indices = []
 
-        GT = 0
-        FN = 0
-        FP = 0
-        TP = 0
-        for sample_idx in range(100):
-            if not os.path.isfile(os.path.join(sampled_path, "%06d.bin"%sample_idx)) or not os.path.isfile(os.path.join(output_path, "%06d.pkl"%sample_idx)):
+    GT = 0
+    FN = 0
+    FP = 0
+    TP = 0
+    for sample_idx in range(100):
+        if not os.path.isfile(os.path.join(sampled_path, "%06d.bin"%sample_idx)) or not os.path.isfile(os.path.join(output_path, "%06d.pkl"%sample_idx)):
+            continue
+        output_file = os.path.join(output_path, "%06d.pkl"%sample_idx)    
+
+        GT_file = os.path.join(raw_root, "label_2/%06d.txt"%sample_idx)
+        GT_pc = os.path.join(raw_root, "velodyne/%06d.bin"%sample_idx)
+        sample_pc = os.path.join(sampled_path, "%06d.bin"%sample_idx)
+
+        GT_pc_size = np.fromfile(GT_pc, dtype=np.float32).reshape(-1, 4).shape[0]
+        sample_pc_size = np.fromfile(sample_pc, dtype=np.float32).reshape(-1, 4).shape[0]
+        space_saving = 1 - sample_pc_size / GT_pc_size
+
+        if not os.path.exists(GT_file):
+            continue
+
+        validate_indices.append(int(sample_idx))
+
+        _, _, _, _, _, labels_lidar = process_sample(raw_root, sample_idx)
+
+        GT_mask = labels_lidar[:, 0] == 1
+        labels_car = labels_lidar[GT_mask]
+
+        if labels_car.size != 0:
+            GT += np.count_nonzero(GT_mask)
+
+            with open(output_file, 'rb') as f:
+                inference_result = pickle.load(f)
+            try:
+                boxes = inference_result["boxes"]
+                scores = inference_result["scores"]
+                labels = inference_result["labels"]
+
+                label_mask = labels == LABEL_PER_MODEL[model]
+                boxes = boxes[label_mask]
+                scores = scores[label_mask]
+                labels = labels[label_mask]
+
+                score_mask = scores > 0.5
+
+                boxes = boxes[score_mask]
+                scores = scores[score_mask]
+                labels = labels[score_mask]
+
+                boxes = boxes[:, [0,1,2,5,4,3,6]]
+
+                if len(boxes) == 0:
+                    FN += np.count_nonzero(GT_mask)
+                else:
+                    boxes = get_filtered_bbox(boundary, boxes)
+
+                    GT_corners = center_to_corner_box3d(labels_car[:, 1:])
+                    boxes_corners = center_to_corner_box3d(boxes)
+
+                    GT_bbox, boxes_bbox = box3d_convert(GT_corners), box3d_convert(boxes_corners)
+
+                    GT_tensor = torch.from_numpy(GT_bbox)
+                    boxes_tensor = torch.from_numpy(boxes_bbox)
+
+                    intersection_vol, iou_3d_raw, miou_raw = box3d_overlap(GT_tensor, boxes_tensor)
+
+                    FN += iou_3d_raw.shape[0] - torch.nonzero(iou_3d_raw).shape[0]
+                    FP += iou_3d_raw.shape[1] - torch.nonzero(iou_3d_raw).shape[0]
+                    TP += torch.nonzero(iou_3d_raw).shape[0]
+
+            except Exception as e:
+                print(f"Index {sample_idx} is not existed")
                 continue
-            output_file = os.path.join(output_path, "%06d.pkl"%sample_idx)    
+            
+            try:
+                precision = TP/(TP+FP)
+            except:
+                precision = 0
+            
+            try:
+                recall = TP/(TP+FN)
+            except:
+                recall = 0
 
-            GT_file = os.path.join(raw_root, "label_2/%06d.txt"%sample_idx)
-            GT_pc = os.path.join(raw_root, "velodyne/%06d.bin"%sample_idx)
-            sample_pc = os.path.join(sampled_path, "%06d.bin"%sample_idx)
+            try:
+                f1_score = 2 * (precision * recall) / (precision + recall)
+            except:
+                f1_score = 0
+            F1_scores.append(float(f1_score))
 
-            GT_pc_size = np.fromfile(GT_pc, dtype=np.float32).reshape(-1, 4).shape[0]
-            sample_pc_size = np.fromfile(sample_pc, dtype=np.float32).reshape(-1, 4).shape[0]
-            space_saving = 1 - sample_pc_size / GT_pc_size
-
-            if not os.path.exists(GT_file):
-                continue
-
-            validate_indices.append(int(sample_idx))
-
-            _, _, _, _, _, labels_lidar = process_sample(raw_root, sample_idx)
-
-            GT_mask = labels_lidar[:, 0] == 1
-            labels_car = labels_lidar[GT_mask]
-
-            if labels_car.size != 0:
-                GT += np.count_nonzero(GT_mask)
-
-                with open(output_file, 'rb') as f:
-                    inference_result = pickle.load(f)
-                try:
-                    boxes = inference_result["boxes"]
-                    scores = inference_result["scores"]
-                    labels = inference_result["labels"]
-
-                    label_mask = labels == LABEL_PER_MODEL[args.model]
-                    boxes = boxes[label_mask]
-                    scores = scores[label_mask]
-                    labels = labels[label_mask]
-
-                    score_mask = scores > 0.5
-
-                    boxes = boxes[score_mask]
-                    scores = scores[score_mask]
-                    labels = labels[score_mask]
-
-                    boxes = boxes[:, [0,1,2,5,4,3,6]]
-
-                    if len(boxes) == 0:
-                        FN += np.count_nonzero(GT_mask)
-                    else:
-                        boxes = get_filtered_bbox(boundary, boxes)
-
-                        GT_corners = center_to_corner_box3d(labels_car[:, 1:])
-                        boxes_corners = center_to_corner_box3d(boxes)
-
-                        GT_bbox, boxes_bbox = box3d_convert(GT_corners), box3d_convert(boxes_corners)
-
-                        GT_tensor = torch.from_numpy(GT_bbox)
-                        boxes_tensor = torch.from_numpy(boxes_bbox)
-
-                        intersection_vol, iou_3d_raw, miou_raw = box3d_overlap(GT_tensor, boxes_tensor)
-
-                        FN += iou_3d_raw.shape[0] - torch.nonzero(iou_3d_raw).shape[0]
-                        FP += iou_3d_raw.shape[1] - torch.nonzero(iou_3d_raw).shape[0]
-                        TP += torch.nonzero(iou_3d_raw).shape[0]
-
-                except Exception as e:
-                    print(f"Index {sample_idx} is not existed")
-                    continue
-                
-                try:
-                    precision = TP/(TP+FP)
-                except:
-                    precision = 0
-                
-                try:
-                    recall = TP/(TP+FN)
-                except:
-                    recall = 0
-
-                try:
-                    f1_score = 2 * (precision * recall) / (precision + recall)
-                except:
-                    f1_score = 0
-                F1_scores.append(float(f1_score))
-
-        average_F1 = np.mean(F1_scores)
-        average_space_saving = np.mean(space_saving)
+    average_F1 = np.mean(F1_scores)
+    average_space_saving = np.mean(space_saving)
+    
+    return average_F1, average_space_saving
         
-        if not os.path.exists(result_path):
-            os.makedirs(result_path)
+    if not os.path.exists(result_path):
+        os.makedirs(result_path)
         
-        with open(os.path.join(result_path, "evaluation.json"), 'w') as fp:
-            json.dump({"F1": average_F1, "Space saving": average_space_saving}, fp)
+    with open(os.path.join(result_path, "evaluation.json"), 'w') as fp:
+        json.dump({"F1": average_F1, "Space saving": average_space_saving}, fp)
+
+def main(args: Namespace) -> None:
+    while True:
+        for idx in os.listdir("/data/3d/mlfs/flag/pre_eval/"):
+            os.remove(f"/data/3d/mlfs/flag/pre_eval/{idx}")
+            f1, space_saving = evaluate(args.model, idx)
+            with open(f"/data/3d/mlfs/post_eval/{idx}", 'w') as fp:
+                json.dump({"f1": f1, "saving": space_saving}, fp)
+            with open(f"/data/3d/mlfs/flag/post_eval/{idx}", 'w') as fp:
+                fp.write("1")
 
 def get_parser() -> ArgumentParser:
     parser = ArgumentParser(formatter_class=RawTextHelpFormatter)
