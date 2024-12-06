@@ -294,7 +294,7 @@ def main(args: Namespace) -> None:
 def get_parser() -> ArgumentParser:
     parser = ArgumentParser(formatter_class=RawTextHelpFormatter)
     parser.add_argument("--model", type=str, default="3dssd")
-    parser.add_argument("-i", "--input_args", type=str, default="0/50/100/200/300/400/500")
+    parser.add_argument("-a", "--args", nargs="*", type=int)
     parser.set_defaults(func=main)
     return parser
 

@@ -37,8 +37,27 @@ def inference(points: np.ndarray, model: Any):
 
 
 def main(args: Namespace) -> None:
+    input_root = "/data/3d/kitti_sampled/training/pre_infer/ml4sys/"
+    output_root = "/data/3d/kitti_sampled/training/post_infer/ml4sys/"
+
+    config_file = MODEL_CONFIG[args.model]
+    checkpoint_file = os.path.join("/data/3d/mmdet3d_checkpoints", MODEL_CHECKPOINT[args.model])
+
+    input_path = input_root
+    output_path = os.path.join(output_root, args.model)
+    
+    if args.args:
+        suffix = "_".join(map(str, args.args)) + "_"
+        input_path = os.path.join(input_path, suffix)
+        output_path = os.path.join(output_path, suffix)
+    
+    input_path = os.path.join(input_path, "")
+    output_path = os.path.join(output_path, "")
+    
     print("=====================================")
     print(f"Start inference: {args.model}")
+    print(f"Input path: {input_path}")
+    print(f"Output path: {output_path}")
     print("=====================================")
     inference_directory(args.model, args.input_root, args.output_root, args.device)
     
@@ -53,11 +72,11 @@ def inference_directory(model_name: str, input_dir: str, output_dir: str, device
     
     device = f"cuda:{device}"
     model = init_model(config_file, checkpoint_file, device)
-    if os.path.isdir(input_dir):
-        for binfile in tqdm(os.listdir(input_dir), desc=output_dir):
+    if os.path.isdir(input_path):
+        for binfile in tqdm(os.listdir(input_path), desc=output_path):
             try:
                 if not binfile.endswith('.bin'): continue
-                points = np.fromfile(os.path.join(input_dir, binfile), dtype=np.float32).reshape(-1, 4)
+                points = np.fromfile(os.path.join(input_path, binfile), dtype=np.float32).reshape(-1, 4)
                 result = inference(points, model)
 
                 boxes = result.pred_instances_3d.bboxes_3d
@@ -73,7 +92,7 @@ def inference_directory(model_name: str, input_dir: str, output_dir: str, device
                 print(f"Error: {e}")
                 continue
 
-            with open(os.path.join(output_dir, binfile[:-3]+'pkl'), 'wb') as fp:
+            with open(os.path.join(output_path, binfile[:-3]+'pkl'), 'wb') as fp:
                 pickle.dump(inference_result, fp)
 
 
