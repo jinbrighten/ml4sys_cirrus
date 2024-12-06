@@ -75,7 +75,8 @@ def get_parser() -> ArgumentParser:
     parser = ArgumentParser(formatter_class=RawTextHelpFormatter)
     parser.add_argument("--device", type=int, default="4")
     parser.add_argument("--model", type=str, default="pv_rcnn")
-    parser.add_argument("-i", "--input_root", type=str, default="/data/3d/kitti_sampled/training/pre_infer/")    parser.add_argument("-o", "--output_root", type=str, default="/data/3d/kitti_sampled/training/post_infer/")
+    parser.add_argument("-i", "--input_root", type=str, default="/data/3d/kitti_sampled/training/pre_infer/")
+    parser.add_argument("-o", "--output_root", type=str, default="/data/3d/kitti_sampled/training/post_infer/")
     parser.set_defaults(func=main)
     return parser
 
