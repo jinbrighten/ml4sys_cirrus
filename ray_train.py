@@ -12,7 +12,7 @@ F1_THRESHOLD = 0.1
 
 WIDTH_COUNT = 6
 WIDTH_MIN = 10
-WIDTH_MAX = 4000
+WIDTH_MAX = 1000
 
 DIFF_COUNT = 6
 DIFF_MIN = 1
@@ -56,24 +56,28 @@ def get_config_idx(widths, diffs):
 def objective(widths, diffs):  # Define an objective function.
     idx = get_config_idx(widths, diffs)
     # Run the sampling C++ program
+    print(f"Start sampling: {idx}... ", end="")
     subprocess.run(
         [
             "/workspaces/ml4sys_cirrus/build/combination_sampling",
             "-w",
-            *widths,
+            ",".join(widths),
             "-d",
-            *diffs,
+            ",".join(diffs),
             "-i",
             str(idx),
         ]
     )
+    print("Done")
     # Run inference
+    print("Start inference... ", end="")
     inference_directory(
         MODEL_NAME,
         f"/data/3d/mlfs/pre_infer/{idx}",
         f"/data/3d/mlfs/post_infer/{idx}",
         DEVICE,
     )
+    print("Done")
     # Wait for the evaluation result
     with open(f"/data/3d/mlfs/flag/pre_eval/{idx}", "w") as f:
         f.write("1")
