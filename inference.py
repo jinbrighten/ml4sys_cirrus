@@ -37,29 +37,12 @@ def inference(points: np.ndarray, model: Any):
 
 
 def main(args: Namespace) -> None:
-    input_root = "/data/3d/kitti_sampled/training/pre_infer/ml4sys/"
-    output_root = "/data/3d/kitti_sampled/training/post_infer/ml4sys/"
-
-    config_file = MODEL_CONFIG[args.model]
-    checkpoint_file = os.path.join("/data/3d/mmdet3d_checkpoints", MODEL_CHECKPOINT[args.model])
-
-    input_path = input_root
-    output_path = os.path.join(output_root, args.model)
-    
-    if args.args:
-        suffix = "_".join(map(str, args.args)) + "_"
-        input_path = os.path.join(input_path, suffix)
-        output_path = os.path.join(output_path, suffix)
-    
-    input_path = os.path.join(input_path, "")
-    output_path = os.path.join(output_path, "")
-    
-    print("=====================================")
-    print(f"Start inference: {args.model}")
-    print(f"Input path: {input_path}")
-    print(f"Output path: {output_path}")
-    print("=====================================")
-    inference_directory(args.model, args.input_root, args.output_root, args.device)
+    while True:
+        for idx in os.listdir("/data/3d/mlfs/flag/pre_infer/"):
+            os.remove(f"/data/3d/mlfs/flag/pre_infer/{idx}")
+            inference_directory("3dssd", f"/data/3d/mlfs/pre_infer/{idx}/", f"/data/3d/mlfs/post_infer/{idx}/", args.device)
+            with open(f"/data/3d/mlfs/flag/post_infer/{idx}", 'w') as f:
+                f.write("done")
     
 
 def inference_directory(model_name: str, input_dir: str, output_dir: str, device) -> None:

@@ -7,6 +7,8 @@ from ray.tune.search.bayesopt import BayesOptSearch
 
 from inference import inference_directory
 
+os.environ["CUDA_VISIBLE_DEVICES"] = "0,1,2,3,4,5,6,7"
+
 RAW_F1 = 0.8
 F1_THRESHOLD = 0.1
 
@@ -69,15 +71,17 @@ def objective(widths, diffs):  # Define an objective function.
         ]
     )
     print("Done")
+
     # Run inference
     print("Start inference... ", end="")
-    inference_directory(
-        MODEL_NAME,
-        f"/data/3d/mlfs/pre_infer/{idx}",
-        f"/data/3d/mlfs/post_infer/{idx}",
-        DEVICE,
-    )
+    with open(f"/data/3d/mlfs/flag/pre_infer/{idx}", "w") as f:
+        f.write("1")
+    while True:
+        if os.path.exists(f"/data/3d/mlfs/flag/post_infer/{idx}"):
+            break
+    os.remove(f"/data/3d/mlfs/flag/post_infer/{idx}")
     print("Done")
+
     # Wait for the evaluation result
     with open(f"/data/3d/mlfs/flag/pre_eval/{idx}", "w") as f:
         f.write("1")
