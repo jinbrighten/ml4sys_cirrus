@@ -282,19 +282,21 @@ def evaluate(model: str, idx: str) -> None:
         json.dump({"F1": average_F1, "Space saving": average_space_saving}, fp)
 
 def main(args: Namespace) -> None:
+    mlfs_root = f"/data/3d/mlfs/{args.name}/"
     while True:
-        for idx in os.listdir("/data/3d/mlfs/flag/pre_eval/"):
-            os.remove(f"/data/3d/mlfs/flag/pre_eval/{idx}")
+        for idx in os.listdir(os.path.join(mlfs_root, "flag/pre_eval/")):
+            os.remove(os.path.join(mlfs_root, f"flag/pre_eval/{idx}"))
             f1, space_saving = evaluate(args.model, idx)
-            with open(f"/data/3d/mlfs/post_eval/{idx}", 'w') as fp:
+            with open(os.path.join(mlfs_root, f"post_eval/{idx}"), 'w') as fp:
                 json.dump({"f1": f1, "saving": space_saving}, fp)
-            with open(f"/data/3d/mlfs/flag/post_eval/{idx}", 'w') as fp:
+            with open(os.path.join(mlfs_root, f"flag/post_eval/{idx}"), 'w') as fp:
                 fp.write("1")
 
 def get_parser() -> ArgumentParser:
     parser = ArgumentParser(formatter_class=RawTextHelpFormatter)
     parser.add_argument("--model", type=str, default="3dssd")
     parser.add_argument("-a", "--args", nargs="*", type=int)
+    parser.add_argument("-n", "--name", type=str, required=True)
     parser.set_defaults(func=main)
     return parser
 

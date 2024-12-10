@@ -19,6 +19,7 @@ static void print_help(string program_name) {
     cout << "   -w: size of the width for each distance (horizontal number of bins)." << endl;
     cout << "   -d: difference threshold for each distance." << endl;
     cout << "   -i: configuration index." << endl;
+    cout << "   -p: output path." << endl;
     cout << "   -h: print this page." << endl;
 }
 
@@ -39,7 +40,7 @@ static std::array<int, 6> parse_int_list(const char* optarg) {
 
 static void parse_opt(int argc, char **argv) {
     int c;
-    while ((c=getopt(argc, argv, "hw:d:i:")) != -1) {
+    while ((c=getopt(argc, argv, "hw:d:i:p:")) != -1) {
         switch (c) {
             case 'w':
                 width_sample_list = parse_int_list(optarg);
@@ -49,6 +50,9 @@ static void parse_opt(int argc, char **argv) {
                 break;
             case 'i':
                 idx = atoi(optarg);
+                break;
+            case 'p':
+                output_path = optarg;
                 break;
             case 'h':
                 print_help(argv[0]);

@@ -37,11 +37,17 @@ def inference(points: np.ndarray, model: Any):
 
 
 def main(args: Namespace) -> None:
+    mlfs_root = f"/data/3d/mlfs/{args.name}/"
     while True:
-        for idx in os.listdir("/data/3d/mlfs/flag/pre_infer/"):
-            os.remove(f"/data/3d/mlfs/flag/pre_infer/{idx}")
-            inference_directory("3dssd", f"/data/3d/mlfs/pre_infer/{idx}/", f"/data/3d/mlfs/post_infer/{idx}/", args.device)
-            with open(f"/data/3d/mlfs/flag/post_infer/{idx}", 'w') as f:
+        for idx in os.listdir(os.path.join(mlfs_root, "flag/pre_infer/")):
+            os.remove(os.path.join(mlfs_root, f"flag/pre_infer/{idx}"))
+            inference_directory(
+                "3dssd",
+                os.path.join(mlfs_root, f"pre_infer/{idx}/"),
+                os.path.join(mlfs_root, f"post_infer/{idx}/"),
+                args.device
+            )
+            with open(os.path.join(mlfs_root, f"flag/post_infer/{idx}"), 'w') as f:
                 f.write("done")
     
 
@@ -86,6 +92,7 @@ def get_parser() -> ArgumentParser:
     parser.add_argument("--model", type=str, default="pv_rcnn")
     parser.add_argument("-i", "--input_root", type=str, default="/data/3d/kitti_sampled/training/pre_infer/")
     parser.add_argument("-o", "--output_root", type=str, default="/data/3d/kitti_sampled/training/post_infer/")
+    parser.add_argument("-n", "--name", type=str, required=True)
     parser.set_defaults(func=main)
     return parser
 
