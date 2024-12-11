@@ -162,7 +162,7 @@ def get_filtered_bbox(boundary, labels):
     return labels
 
 
-def evaluate(model: str, idx: str) -> None:
+def evaluate(sampled_path: str, output_path: str, model: str, idx: str) -> None:
     raw_root = "/data/3d/kitti/training/"
     sampled_root = "/data/3d/kitti_sampled/training/pre_infer/multi_resolution/"
     output_root = f"/data/3d/kitti_sampled/training/post_infer/{model}/multi_resolution/"
@@ -171,8 +171,8 @@ def evaluate(model: str, idx: str) -> None:
     # sampled_path = os.path.join(sampled_root, input_args)
     # output_path = os.path.join(output_root, input_args)
     # result_path = os.path.join(result_root, input_args)
-    sampled_path = f"/data/3d/mlfs/pre_infer/{idx}"
-    output_path = f"/data/3d/mlfs/post_infer/{idx}"
+    # sampled_path = f"/data/3d/mlfs/pre_infer/{idx}"
+    # output_path = f"/data/3d/mlfs/post_infer/{idx}"
 
     print("=====================================")
     print(f"Start evaluation: {model}")
@@ -185,8 +185,10 @@ def evaluate(model: str, idx: str) -> None:
     FN = 0
     FP = 0
     TP = 0
+    space_savings = []
     for sample_idx in range(100):
         if not os.path.isfile(os.path.join(sampled_path, "%06d.bin"%sample_idx)) or not os.path.isfile(os.path.join(output_path, "%06d.pkl"%sample_idx)):
+            print(f"Index {sample_idx} is not existed")
             continue
         output_file = os.path.join(output_path, "%06d.pkl"%sample_idx)    
 
@@ -196,7 +198,7 @@ def evaluate(model: str, idx: str) -> None:
 
         GT_pc_size = np.fromfile(GT_pc, dtype=np.float32).reshape(-1, 4).shape[0]
         sample_pc_size = np.fromfile(sample_pc, dtype=np.float32).reshape(-1, 4).shape[0]
-        space_saving = 1 - sample_pc_size / GT_pc_size
+        space_savings.append(1 - sample_pc_size / GT_pc_size)
 
         if not os.path.exists(GT_file):
             continue
@@ -271,7 +273,7 @@ def evaluate(model: str, idx: str) -> None:
             F1_scores.append(float(f1_score))
 
     average_F1 = np.mean(F1_scores)
-    average_space_saving = np.mean(space_saving)
+    average_space_saving = np.mean(space_savings)
     
     return average_F1, average_space_saving
         
@@ -286,7 +288,12 @@ def main(args: Namespace) -> None:
     while True:
         for idx in os.listdir(os.path.join(mlfs_root, "flag/pre_eval/")):
             os.remove(os.path.join(mlfs_root, f"flag/pre_eval/{idx}"))
-            f1, space_saving = evaluate(args.model, idx)
+            f1, space_saving = evaluate(
+                os.path.join(mlfs_root, f"pre_infer/{idx}"),
+                os.path.join(mlfs_root, f"post_infer/{idx}"),
+                args.model,
+                idx
+            )
             with open(os.path.join(mlfs_root, f"post_eval/{idx}"), 'w') as fp:
                 json.dump({"f1": f1, "saving": space_saving}, fp)
             with open(os.path.join(mlfs_root, f"flag/post_eval/{idx}"), 'w') as fp:

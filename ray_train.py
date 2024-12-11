@@ -1,11 +1,13 @@
 import json
 import os
+import pickle
 import subprocess
 from pathlib import Path
 
 from ray import train, tune
-from ray.tune.search.bayesopt import BayesOptSearch
 from ray.tune.schedulers.hb_bohb import HyperBandForBOHB
+from ray.tune.search import ConcurrencyLimiter
+from ray.tune.search.bayesopt import BayesOptSearch
 from ray.tune.search.bohb import TuneBOHB
 
 from inference import inference_directory
@@ -115,6 +117,28 @@ def trainable(config):  # Pass a "config" dictionary into your trainable.
     train.report({"score": score})  # Send the score to Tune.
 
 
+class TrainableClass(tune.Trainable):
+    def setup(self, config):
+        self.widths = [str(int(config[f"w{i}"])) for i in range(WIDTH_COUNT)]
+        self.diffs = [str(int(config[f"d{i}"])) for i in range(DIFF_COUNT)]
+
+    def step(self):
+        score = objective(self.widths, self.diffs)
+        return {"score": score}
+
+    def save_checkpoint(self, checkpoint_dir):
+        path = os.path.join(checkpoint_dir, "checkpoint")
+        with open(path, "w") as f:
+            json.dump({"widths": self.widths, "diffs": self.diffs}, f)
+
+    def load_checkpoint(self, checkpoint_dir):
+        path = os.path.join(checkpoint_dir, "checkpoint")
+        with open(path, "r") as f:
+            checkpoint = json.load(f)
+        self.widths = checkpoint["widths"]
+        self.diffs = checkpoint["diffs"]
+
+
 def main():
     # Define the search space
     width_space = {
@@ -182,7 +206,7 @@ def main():
         bohb_search = tune.search.ConcurrencyLimiter(bohb_search, max_concurrent=4)
 
         tuner = tune.Tuner(
-            trainable,
+            TrainableClass,
             run_config=train.RunConfig(
                 name="bohb_test", stop={"training_iteration": max_iterations}
             ),
@@ -198,7 +222,26 @@ def main():
 
     ### Bayes
     elif NAME == "bayes":
-        algo = BayesOptSearch(random_search_steps=4)
+        algo = BayesOptSearch(
+            random_search_steps=50,
+            points_to_evaluate=[
+                {
+                    "w0": 100.0,
+                    "w1": 200.0,
+                    "w2": 300.0,
+                    "w3": 400.0,
+                    "w4": 500.0,
+                    "w5": 1000.0,
+                    "d0": 4.9,
+                    "d1": 4.9,
+                    "d2": 0.0,
+                    "d3": 0.0,
+                    "d4": 0.0,
+                    "d5": 0.0,
+                }
+            ],
+        )
+        algo = ConcurrencyLimiter(algo, max_concurrent=2)
 
         tuner = tune.Tuner(
             trainable,
@@ -206,9 +249,9 @@ def main():
                 metric="score",
                 mode="min",
                 search_alg=algo,
-                num_samples=1,
+                num_samples=3200,
             ),
-            run_config=train.RunConfig(stop={"training_iteration": 40}),
+            run_config=train.RunConfig(stop={"training_iteration": 3200}),
             param_space=search_space,
         )
 
@@ -218,6 +261,8 @@ def main():
     best_config = best_result.config
     print(best_result)
     print(best_config)  # Get the best config
+    with open(MLFS_ROOT / "result.pkl", "wb") as f:
+        pickle.dump(best_result, f)
 
 
 if __name__ == "__main__":
