@@ -14,7 +14,7 @@ from inference import inference_directory
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0,1,2,3,4,5,6,7"
 
-NAME = "bohb"
+NAME = "bayes"
 
 RAW_F1 = 0.73
 F1_THRESHOLD = 0.08
@@ -28,11 +28,9 @@ DIFF_MIN = 0
 DIFF_MAX = 5
 
 MODEL_NAME = "3dssd"
-DEVICE = 3
 
 
 MLFS_ROOT = Path("/data/3d/mlfs/") / NAME
-# CONFIG_IDX_FILE = "/data/3d/mlfs/config_idx.json"
 CONFIG_IDX_FILE = MLFS_ROOT / "config_idx.json"
 
 
