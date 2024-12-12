@@ -50,5 +50,7 @@ conda activate pytorch3d
 python evaluate.py --name bayes
 ```
 
-Example video
+Example video: `docs/implementation.mov`
 ![](docs/implementation.mov)
+<video width="600" controls>
+<source src="docs/implementation.mov" type="video/quicktime"> </video>
