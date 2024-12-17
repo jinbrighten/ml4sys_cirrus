@@ -6,7 +6,22 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ## Installation
-Our project is dependent on several different libraries. We provide a [Dockerfile]() to build an image.
+Our project is dependent on several different libraries.
+You can pull and run the image from Docker Hub to quickly set up the environment without the need to manually build it.
+
+To pull the latest version of the `ml4sys_cirrus` Docker image, run the following command:
+
+```bash
+docker pull jinmyeongkim/ml4sys_cirrus:latest
+```
+
+Once the image is pulled, you can run the container using the following command:
+
+```bash
+docker run --gpus all -it -v /home/{username}:/home/{username} -v /data:/data jinmyeongkim/ml4sys_cirrus:latest /bin/bash
+```
+
+This will start the container in interactive mode with a terminal session.
 
 Although we provided the sample point cloud frame(`sample_data/raw.bin`), you can download the entire KITTI 3D point cloud dataset [HERE](http://www.cvlibs.net/datasets/kitti/eval_object.php?obj_benchmark=3d).
 The directory structure for the dataset should be as follows:
