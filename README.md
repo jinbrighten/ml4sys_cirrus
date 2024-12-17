@@ -1,4 +1,22 @@
-# ml4sys_cirrus
+<br />
+<div align="center">
+  <h1 align="center">ML4SYS Project -  Cirrus: Efficient Combinational Poitn Cloud Sampling Method Using ML</h1>
+</div>
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+## Installation
+Our project is dependent on several different libraries. We provide a [Dockerfile]() to build an image.
+
+Although we provided the sample point cloud frame(`sample_data/raw.bin`), you can download the entire KITTI 3D point cloud dataset [HERE](http://www.cvlibs.net/datasets/kitti/eval_object.php?obj_benchmark=3d).
+The directory structure for the dataset should be as follows:
+```
+/data/3d/kitti/training/
+|--- calib/
+|--- image_2/
+|--- label_2/
+|--- velodyne/
+```
 
 ## How to run
 1. Build a sampling program.
@@ -37,14 +55,14 @@ python ray_train.py
 ```
 If it fails to find the sampling program, modify `ray_train.py: line 71` to proper absolute path.
 
-3. Run inference daemon.
+4. Run inference daemon.
 ```bash
 conda activate base
 python inference.py --name bayes --device $GPU_NUM
 ```
 If it fails to find the model configuration or checkpoint file, check `inference.py: line 17 & 25`.
 
-3. Run evaluation daemon.
+5. Run evaluation daemon.
 ```bash
 conda activate pytorch3d
 python evaluate.py --name bayes

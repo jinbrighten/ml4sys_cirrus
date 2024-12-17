@@ -9,7 +9,6 @@ static array<int, 6> width_sample_list = {100, 200, 300, 400, 500, 1000};
 static array<int, 6> diff_thr_list = {10, 5, 0, 0, 0, 0};
 
 static string input_path = "/data/3d/kitti/training/velodyne/";
-// static string output_path = "/data/3d/kitti_sampled/training/pre_infer/comb_knob/";
 static string output_path = "/data/3d/mlfs/pre_infer/";
 static int idx = 0;
 
